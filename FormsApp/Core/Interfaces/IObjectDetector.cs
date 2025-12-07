@@ -13,7 +13,10 @@ namespace FormsApp.Core.Interfaces {
         /// </summary>
         /// <param name="frame">输入图像帧</param>
         /// <returns>检测结果</returns>
-        YoloResult<Detection> Detect(Mat frame);
+        //YoloResult<Detection> Detect(Mat frame);
 
+        IEnumerable<DetectionResult> Detect(Mat frame);
+
+        string Name { get; }
     }
 }

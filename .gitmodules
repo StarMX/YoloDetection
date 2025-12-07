@@ -1,0 +1,3 @@
+[submodule "YoloDotNet"]
+	path = YoloDotNet
+	url = https://github.com/StarMX/YoloDotNet.git

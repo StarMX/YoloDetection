@@ -1,5 +1,4 @@
 using Compunet.YoloSharp;
-using Compunet.YoloSharp.Data;
 using FormsApp.Core.Interfaces;
 using Microsoft.ML.OnnxRuntime;
 using OpenCvSharp;
@@ -9,14 +8,14 @@ namespace FormsApp.Core.Detectors {
     /// YOLO目标检测器
     /// 使用YoloSharp库实现目标检测
     /// </summary>
-    public class YoloDetector : IObjectDetector {
-        private YoloPredictor? _yoloPredictor;
+    public class YoloSharpDetector : IObjectDetector {
+        private YoloPredictor? _predictor;
 
         /// <summary>
         /// 构造函数
         /// </summary>
         /// <param name="modelPath">模型文件路径</param>
-        public YoloDetector(string modelPath) {
+        public YoloSharpDetector(string modelPath) {
             if (string.IsNullOrEmpty(modelPath))
                 throw new ArgumentNullException(nameof(modelPath), "模型路径不能为空");
 
@@ -24,38 +23,45 @@ namespace FormsApp.Core.Detectors {
                 throw new FileNotFoundException("模型文件未找到", modelPath);
             var session = new SessionOptions();
             session.AppendExecutionProvider_OpenVINO("AUTO:GPU,CPU");
-            _yoloPredictor = new YoloPredictor(modelPath, new YoloPredictorOptions() {
+            _predictor = new YoloPredictor(modelPath, new YoloPredictorOptions() {
                 UseCuda = false,
                 SessionOptions = session
             });
         }
-
+        public string Name => nameof(YoloSharpDetector);
 
         /// <summary>
         /// 检测图像中的目标
         /// </summary>
         /// <param name="frame">输入图像帧</param>
         /// <returns>检测结果</returns>
-        public YoloResult<Detection> Detect(Mat frame) {
-            if (_yoloPredictor == null)
-                throw new ObjectDisposedException(nameof(YoloDetector), "检测器已被释放");
+        public IEnumerable<DetectionResult> Detect(Mat frame) {
+            if (_predictor == null)
+                throw new ObjectDisposedException(nameof(YoloSharpDetector), "检测器已被释放");
 
-            //if (frame == null || frame.Empty())
-            //    throw new ArgumentException("输入帧不能为空", nameof(frame));
-
+            // 直接返回检测结果，不做类型转换
+            //return _predictor.Detect(frame.ToBytes());
             try {
-                // 直接返回检测结果，不做类型转换
-                return _yoloPredictor.Detect(frame.ToBytes());
-            } catch (Exception ex) {
-                throw new InvalidOperationException($"目标检测失败: {ex.Message}", ex);
+                var results = _predictor.Detect(frame.ToBytes());
+                //内存泄漏，没搞定直接强制回收吧
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                return [.. results.Select(e => new DetectionResult {
+                    Name = e.Name.ToString(),
+                    Confidence = e.Confidence,
+                    Bounds = new RectangleF(e.Bounds.X, e.Bounds.Y, e.Bounds.Width, e.Bounds.Height)
+                })];
+            } catch {
+                return Array.Empty<DetectionResult>();
             }
+
         }
 
         /// <summary>
         /// 释放资源
         /// </summary>
         public void Dispose() {
-            _yoloPredictor?.Dispose();
+            _predictor?.Dispose();
             GC.SuppressFinalize(this);
         }
     }

@@ -6,6 +6,19 @@ using OpenCvSharp.Extensions;
 using System.Diagnostics;
 
 namespace FormsApp.Core {
+    public class DetectionResult {
+        //public int ClassId { get; set; }
+        public required string Name { get; set; }
+        public float Confidence { get; set; }
+        public RectangleF Bounds { get; set; }
+
+        public override string ToString() {
+            return $"{Name}: {Confidence:P2} [{Bounds.X}, {Bounds.Y}, {Bounds.Width}, {Bounds.Height}]";
+        }
+    }
+
+
+
     /// <summary>
     /// 视频处理管理器
     /// 负责协调视频流处理和目标检测
@@ -75,7 +88,8 @@ namespace FormsApp.Core {
         public VideoProcessingManager() {
             // 创建默认实现
             _streamProcessor = new RtspStreamProcessor();
-            _objectDetector = new YoloDetector("models/yolo11n.onnx");
+            //_objectDetector = new YoloSharpDetector("models/yolo11n.onnx");
+            _objectDetector = new YoloDotNetDetector(Path.Join("models", "yolo11n.onnx"));
 
             // 订阅事件
             _streamProcessor.OnFrameReceived += ProcessFrame;
@@ -126,17 +140,16 @@ namespace FormsApp.Core {
         /// 处理视频帧
         /// </summary>
         /// <param name="frame">视频帧</param>
-        private void ProcessFrame(Mat srcFrame) {
-
-            using Mat frame = new();
-            Cv2.Resize(srcFrame, frame, new OpenCvSharp.Size(640, 640));
+        private void ProcessFrame(Mat frame) {
             try {
                 Stopwatch stopwatch = Stopwatch.StartNew();
                 // 进行目标检测
-                var results = _objectDetector.Detect(frame);
+                var results = _objectDetector.Detect(frame)
+                    //.Where(s =>s.Confidence > 0.75F)
+                    .ToArray()
+                    ;
                 foreach (var result in results) {
-                    //if (result.Confidence < 0.85F) continue;
-                    var rect = new Rect(result.Bounds.X, result.Bounds.Y, result.Bounds.Width, result.Bounds.Height);
+                    var rect = new Rect((int)result.Bounds.X, (int)result.Bounds.Y, (int)result.Bounds.Width, (int)result.Bounds.Height);
                     Cv2.Rectangle(frame, rect, new Scalar(0, 255, 0), 2);
 
                     Cv2.PutText(frame,
@@ -146,8 +159,8 @@ namespace FormsApp.Core {
                 }
 
                 // 显示FPS和处理帧信息
-                Cv2.PutText(frame, 
-                    $"FPS:{_streamProcessor.Fps:F1} | Processed Frames:{_streamProcessor.ReadFrameCount / _streamProcessor.FrameInterval}", 
+                Cv2.PutText(frame,
+                    $"FPS:{_streamProcessor.Fps:F1} | Processed Frames:{_streamProcessor.ReadFrameCount / _streamProcessor.FrameInterval}",
                     new OpenCvSharp.Point(10, 20), HersheyFonts.HersheySimplex, 0.5, Scalar.MistyRose, 1);
 
                 // 更新当前位图
@@ -162,9 +175,6 @@ namespace FormsApp.Core {
                 OnError?.Invoke($"处理帧时出错: {ex.Message}");
             } finally {
                 frame.Dispose();
-                //YoloSharp内存泄漏，没搞定直接强制回收吧
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
             }
 
         }

@@ -7,21 +7,27 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <SupportedOSPlatformVersion>8.0</SupportedOSPlatformVersion>
-    <Platforms>AnyCPU;x64</Platforms>
+    <Platforms>AnyCPU</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
-	  <PackageReference Include="Intel.ML.OnnxRuntime.OpenVino" Version="1.23.0" RuntimeIdentifier="win-x64" />
-	  <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.23.2" />
     <PackageReference Include="OpenCvSharp4.Extensions" Version="4.11.0.20250507" />
     <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507" />
     <PackageReference Include="YoloSharp.Gpu" Version="6.0.6" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\YoloDotNet\YoloDotNet\YoloDotNet.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="models\yolo11n.onnx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\PublishProfiles\" />
   </ItemGroup>
 
 </Project>

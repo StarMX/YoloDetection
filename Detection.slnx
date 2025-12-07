@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="FormsApp/FormsApp.csproj">
+    <Platform Solution="Release|*" Project="x64" />
+  </Project>
+  <Project Path="YoloDotNet/YoloDotNet/YoloDotNet.csproj" />
+</Solution>
